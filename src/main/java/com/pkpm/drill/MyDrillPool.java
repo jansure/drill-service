@@ -1,5 +1,8 @@
 package com.pkpm.drill;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.util.LinkedList;
 import java.util.concurrent.locks.StampedLock;
@@ -10,15 +13,21 @@ import java.util.concurrent.locks.StampedLock;
  */
 public class MyDrillPool {
 
+
+    protected static final Logger logger = LoggerFactory.getLogger(MyDrillPool.class);
+
     private LinkedList<Connection> connPool=new LinkedList<Connection>();
-    //读写锁
+    /**
+     * 读写锁
+     */
     private final StampedLock stampedLock = new StampedLock();
-    //连接池中存放10个连接
+
     public MyDrillPool(){
-        for(int i=0;i<10;i++){
+        for(int i = 0 ;i < 10; i++ ){
             this.connPool.addLast(this.CreateConnection());
         }
     }
+
     //在获取数据库连接的时候，如果是多个线程并发的获取的话，当连接池中没有连接的时候，那么这候再获取的时候就会报错，而且该操作属于非线程安全的
     public Connection CreateConnection(){
         long stamp = stampedLock.tryOptimisticRead();
