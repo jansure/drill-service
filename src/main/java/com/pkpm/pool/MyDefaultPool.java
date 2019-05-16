@@ -7,15 +7,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by Administrator on 2019/5/15.
  */
 public class MyDefaultPool implements IMyPool {
 
-    private final Logger log = LoggerFactory.getLogger(MyDefaultPool.class);
+    private final Logger log  = LoggerFactory.getLogger(MyDefaultPool.class);
 
-    private Vector<MyPooledConnection> myPooledConnectionVector = new Vector<>();
+    private CopyOnWriteArrayList<MyPooledConnection> copyOnWriteArrayList = new CopyOnWriteArrayList<>();
     private static String jdbcURL;
     private static String jdbcUsername;
     private static String jdbcPassword;
@@ -48,7 +49,7 @@ public class MyDefaultPool implements IMyPool {
 
     @Override
     public MyPooledConnection getMyPooledConnection() {
-        if(myPooledConnectionVector.size() < 1){
+        if(copyOnWriteArrayList.size() < 1){
             throw new RuntimeException("初始化错误...");
         }
         MyPooledConnection myPooledConnection = null;
@@ -67,8 +68,8 @@ public class MyDefaultPool implements IMyPool {
         return myPooledConnection;
     }
 
-    private MyPooledConnection getRealConnectionFromPool() throws SQLException {
-        for (MyPooledConnection myPooledConnection : myPooledConnectionVector) {
+    private synchronized MyPooledConnection getRealConnectionFromPool() throws SQLException {
+        for (MyPooledConnection myPooledConnection : copyOnWriteArrayList) {
             if(!myPooledConnection.isBusy()){
                 if(myPooledConnection.getConnection().isValid(3000)){
                     myPooledConnection.setBusy(true);
@@ -86,8 +87,8 @@ public class MyDefaultPool implements IMyPool {
 
     @Override
     public void createMyPooledConnection(int count) {
-        if( myPooledConnectionVector.size() > maxCount ||
-                myPooledConnectionVector.size() + count > maxCount){
+        if( copyOnWriteArrayList.size() > maxCount ||
+                copyOnWriteArrayList.size() + count > maxCount){
             throw new RuntimeException("连接池已满。。。");
         }
         
@@ -95,7 +96,7 @@ public class MyDefaultPool implements IMyPool {
             for (int i = 0; i < count; i++) {
                 Connection conn = DriverManager.getConnection(jdbcURL, jdbcUsername, jdbcPassword);
                 MyPooledConnection myPooledConnection = new MyPooledConnection(conn, false);
-                myPooledConnectionVector.add(myPooledConnection);
+                copyOnWriteArrayList.add(myPooledConnection);
             }
 
         } catch (SQLException e) {

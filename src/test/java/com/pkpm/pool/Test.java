@@ -18,6 +18,7 @@ public class Test {
             while(result.next()){
                 System.out.println("-----" + result.getString("username"));
             }
+            myPooledConnection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
